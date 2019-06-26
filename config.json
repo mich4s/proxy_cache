@@ -1,0 +1,14 @@
+{
+    "PublicPort": "8000",
+    "PrivatePort": "80",
+    "PrivateURL": "https://jsonplaceholder.typicode.com",
+    "WriteTimeout": 30,
+    "ReadTimeout": 30,
+    "enpoints": [
+        {
+            "url": "/todos",
+            "method": "get",
+            "interval": 30
+        }
+    ]
+}
