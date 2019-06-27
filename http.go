@@ -2,15 +2,28 @@ package main
 
 import (
 	"bytes"
-	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
 
+func prepareResponse(w http.ResponseWriter, r *http.Request) (string, int, http.Header) {
+	cached, cacheExists, endpoint := validateCache(r.Method, r.URL)
+	if cacheExists {
+		return cached.response, cached.code, cached.headers
+	}
+	requestURI := r.URL.RequestURI()
+	response, code, headers := accessOriginalPath(r, requestURI)
+	if endpoint != nil {
+		writeCache(endpoint, requestURI, response, code, headers)
+	}
+	return response, code, headers
+}
+
 func accessOriginalPath(r *http.Request, requestURI string) (string, int, http.Header) {
-	fmt.Println("Writing api request")
 	client := &http.Client{}
-	request, err := http.NewRequest("GET", config.PrivateURL+requestURI, nil)
+	log.Println(config.PrivateURL + requestURI)
+	request, err := http.NewRequest(r.Method, config.PrivateURL+requestURI, r.Body)
 	if err != nil {
 		return "", 500, nil
 	}
@@ -27,22 +40,9 @@ func fillRequestHeaders(request *http.Request, headers http.Header) {
 	for name, headers := range headers {
 		name = strings.ToLower(name)
 		for _, h := range headers {
-			request.Header.Set(validateHeader(name, h))
+			request.Header.Set(name, h)
 		}
 	}
-}
-
-func validateHeader(name string, value string) (string, string) {
-	if name == "accept-encoding" {
-		value = strings.ReplaceAll(value, "gzip, ", "")
-		value = strings.ReplaceAll(value, "gzip", "")
-	}
-	fmt.Println(name, value)
-	return name, value
-}
-
-func omitGZip() {
-
 }
 
 func convertResponseToString(response *http.Response) string {
